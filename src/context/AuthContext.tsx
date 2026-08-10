@@ -6,8 +6,12 @@ interface AuthContextValue {
   session: Session | null
   userId: string | null
   loading: boolean
+  passwordRecovery: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  sendPasswordReset: (email: string) => Promise<{ error: string | null }>
+  updatePassword: (password: string) => Promise<{ error: string | null }>
+  dismissPasswordRecovery: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
@@ -20,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [passwordRecovery, setPasswordRecovery] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -27,8 +32,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, newSession) => {
       setSession(newSession)
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true)
     })
 
     return () => subscription.subscription.unsubscribe()
@@ -43,8 +49,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut()
   }
 
+  async function sendPasswordReset(email: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    })
+    return { error: error?.message ?? null }
+  }
+
+  async function updatePassword(password: string) {
+    const { error } = await supabase.auth.updateUser({ password })
+    if (!error) setPasswordRecovery(false)
+    return { error: error?.message ?? null }
+  }
+
+  function dismissPasswordRecovery() {
+    setPasswordRecovery(false)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, userId: session?.user.id ?? null, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        userId: session?.user.id ?? null,
+        loading,
+        passwordRecovery,
+        signIn,
+        signOut,
+        sendPasswordReset,
+        updatePassword,
+        dismissPasswordRecovery,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

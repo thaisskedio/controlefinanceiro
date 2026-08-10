@@ -6,6 +6,7 @@ import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppShell } from './components/layout/AppShell'
 import { Login } from './pages/Login'
+import { ResetPassword } from './pages/ResetPassword'
 import { Dashboard } from './pages/Dashboard'
 import { Transactions } from './pages/Transactions'
 import { Categories } from './pages/Categories'
@@ -13,7 +14,7 @@ import { Planning } from './pages/Planning'
 import { Settings } from './pages/Settings'
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { loading, session } = useAuth()
+  const { loading, session, passwordRecovery } = useAuth()
 
   if (loading) {
     return (
@@ -23,6 +24,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         </span>
       </div>
     )
+  }
+
+  if (passwordRecovery) {
+    return <ResetPassword />
   }
 
   if (!session) {
