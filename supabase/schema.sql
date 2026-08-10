@@ -1,8 +1,7 @@
 -- Controle Financeiro — schema inicial
 -- Rode este arquivo no SQL Editor do seu projeto Supabase (Database > SQL Editor).
--- Requer: Authentication > Providers > Anonymous sign-ins habilitado
--- (o app usa auth.signInAnonymously() para obter um auth.uid() sem tela de login,
--- o que permite manter RLS por user_id mesmo sem cadastro/login explícito).
+-- Login é feito por e-mail/senha (Supabase Auth). Cadastro é fechado: crie o
+-- usuário manualmente em Authentication > Users (marque "Auto Confirm User").
 
 create extension if not exists "pgcrypto";
 

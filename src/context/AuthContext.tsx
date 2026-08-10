@@ -6,58 +6,45 @@ interface AuthContextValue {
   session: Session | null
   userId: string | null
   loading: boolean
-  error: string | null
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 /**
- * Sem tela de login: usa Supabase Anonymous Auth para obter um auth.uid()
- * automaticamente, permitindo que as políticas de RLS (user_id = auth.uid())
- * funcionem sem exigir cadastro/login do usuário.
+ * Login obrigatório por e-mail/senha (Supabase Auth). Cadastro é fechado:
+ * a conta é criada manualmente no painel do Supabase (Authentication > Users),
+ * não existe tela de cadastro no app.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let mounted = true
-
-    async function bootstrap() {
-      const { data } = await supabase.auth.getSession()
-      if (data.session) {
-        if (mounted) {
-          setSession(data.session)
-          setLoading(false)
-        }
-        return
-      }
-
-      const { data: signInData, error: signInError } = await supabase.auth.signInAnonymously()
-      if (!mounted) return
-      if (signInError) {
-        setError(signInError.message)
-      } else {
-        setSession(signInData.session)
-      }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
       setLoading(false)
-    }
-
-    bootstrap()
+    })
 
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
     })
 
-    return () => {
-      mounted = false
-      subscription.subscription.unsubscribe()
-    }
+    return () => subscription.subscription.unsubscribe()
   }, [])
 
+  async function signIn(email: string, password: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    return { error: error?.message ?? null }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+  }
+
   return (
-    <AuthContext.Provider value={{ session, userId: session?.user.id ?? null, loading, error }}>
+    <AuthContext.Provider value={{ session, userId: session?.user.id ?? null, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

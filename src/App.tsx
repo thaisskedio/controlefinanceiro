@@ -5,6 +5,7 @@ import { Wallet } from 'lucide-react'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AppShell } from './components/layout/AppShell'
+import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { Transactions } from './pages/Transactions'
 import { Categories } from './pages/Categories'
@@ -12,18 +13,7 @@ import { Planning } from './pages/Planning'
 import { Settings } from './pages/Settings'
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { loading, error } = useAuth()
-
-  if (error) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-sunken px-6 text-center">
-        <div>
-          <p className="mb-2 text-sm font-medium text-status-late">Não foi possível conectar ao Supabase</p>
-          <p className="text-xs text-content-muted">{error}</p>
-        </div>
-      </div>
-    )
-  }
+  const { loading, session } = useAuth()
 
   if (loading) {
     return (
@@ -33,6 +23,10 @@ function AuthGate({ children }: { children: React.ReactNode }) {
         </span>
       </div>
     )
+  }
+
+  if (!session) {
+    return <Login />
   }
 
   return <>{children}</>

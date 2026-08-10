@@ -1,6 +1,8 @@
-import { Moon, Sun } from 'lucide-react'
+import { LogOut, Moon, Sun } from 'lucide-react'
 import { Card } from '../components/ui/Card'
+import { Button } from '../components/ui/Button'
 import { useTheme } from '../context/ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
 const PALETTE = [
   { name: 'Rosa', hex: '#F472B6' },
@@ -13,9 +15,18 @@ const PALETTE = [
 
 export function Settings() {
   const { theme, setTheme } = useTheme()
+  const { session, signOut } = useAuth()
 
   return (
     <div className="flex flex-col gap-4">
+      <Card>
+        <p className="mb-3 text-sm font-medium text-content">Conta</p>
+        <p className="mb-3 text-xs text-content-muted">{session?.user.email}</p>
+        <Button variant="secondary" onClick={() => signOut()}>
+          <LogOut size={16} /> Sair
+        </Button>
+      </Card>
+
       <Card>
         <p className="mb-3 text-sm font-medium text-content">Tema</p>
         <div className="grid grid-cols-2 gap-3">
