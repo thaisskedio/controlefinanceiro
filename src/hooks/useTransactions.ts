@@ -8,6 +8,7 @@ import {
   markAsPaid,
   markAsPending,
   updateTransaction,
+  updateTransactionSeries,
   type CancelScope,
   type NewTransactionInput,
   type TransactionFilters,
@@ -36,6 +37,15 @@ export function useUpdateTransaction() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<Transaction> }) => updateTransaction(id, input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+  })
+}
+
+export function useUpdateTransactionSeries() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ transaction, input }: { transaction: Transaction; input: Partial<Transaction> }) =>
+      updateTransactionSeries(transaction, input),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
   })
 }

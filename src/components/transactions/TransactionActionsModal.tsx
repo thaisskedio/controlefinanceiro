@@ -30,7 +30,9 @@ export function TransactionActionsModal({
   const deleteTransaction = useDeleteTransaction()
 
   const status = getEffectiveStatus(transaction)
-  const isPartOfGroup = !!transaction.installment_group_id
+  const isPartOfInstallment = !!transaction.installment_group_id
+  const isPartOfRecurrence = !!transaction.recurrence_group_id
+  const isPartOfGroup = isPartOfInstallment || isPartOfRecurrence
 
   return (
     <Modal title="Lançamento" onClose={onClose}>
@@ -69,9 +71,9 @@ export function TransactionActionsModal({
             ) : (
               <div className="rounded-xl border border-status-late/30 bg-status-late/5 p-3">
                 <p className="mb-2 text-xs text-content">
-                  {isPartOfGroup
-                    ? 'Esta parcela faz parte de um parcelamento. O que deseja cancelar?'
-                    : 'Confirma o cancelamento deste lançamento?'}
+                  {isPartOfInstallment && 'Esta parcela faz parte de um parcelamento. O que deseja cancelar?'}
+                  {isPartOfRecurrence && 'Este lançamento faz parte de uma série recorrente. O que deseja cancelar?'}
+                  {!isPartOfGroup && 'Confirma o cancelamento deste lançamento?'}
                 </p>
                 <div className="flex flex-col gap-2">
                   <Button
@@ -83,7 +85,9 @@ export function TransactionActionsModal({
                       )
                     }
                   >
-                    {isPartOfGroup ? 'Cancelar apenas esta parcela' : 'Confirmar cancelamento'}
+                    {isPartOfInstallment && 'Cancelar apenas esta parcela'}
+                    {isPartOfRecurrence && 'Cancelar apenas esta ocorrência'}
+                    {!isPartOfGroup && 'Confirmar cancelamento'}
                   </Button>
                   {isPartOfGroup && (
                     <Button
@@ -95,7 +99,7 @@ export function TransactionActionsModal({
                         )
                       }
                     >
-                      Cancelar esta e as parcelas futuras
+                      {isPartOfInstallment ? 'Cancelar esta e as parcelas futuras' : 'Cancelar esta e as futuras'}
                     </Button>
                   )}
                   <Button variant="ghost" onClick={() => setConfirmingCancel(false)}>

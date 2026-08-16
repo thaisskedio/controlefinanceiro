@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useTransactions } from '../hooks/useTransactions'
+import { useAccountSettings } from '../hooks/useAccountSettings'
 import { Card } from '../components/ui/Card'
 import { TransactionRow } from '../components/transactions/TransactionRow'
 import { WeeklyBarChart } from '../components/dashboard/WeeklyBarChart'
@@ -12,6 +13,7 @@ export function Dashboard() {
   const { from, to } = monthInputToRange(month)
 
   const { data: allTransactions = [], isLoading } = useTransactions()
+  const { data: accountSettings } = useAccountSettings()
   const periodTransactions = useMemo(
     () => allTransactions.filter((t) => t.due_date >= from && t.due_date <= to),
     [allTransactions, from, to],
@@ -19,10 +21,11 @@ export function Dashboard() {
 
   const saldoAtual = useMemo(
     () =>
+      (accountSettings?.initial_balance ?? 0) +
       allTransactions
         .filter((t) => t.status === 'paid')
         .reduce((acc, t) => acc + (t.type === 'income' ? t.amount : -t.amount), 0),
-    [allTransactions],
+    [allTransactions, accountSettings],
   )
 
   const aPagarNoMes = useMemo(

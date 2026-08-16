@@ -3,15 +3,18 @@ import { Plus } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Select } from '../components/ui/Field'
+import { MonthNav } from '../components/ui/MonthNav'
 import { TransactionRow } from '../components/transactions/TransactionRow'
 import { TransactionFormModal } from '../components/transactions/TransactionFormModal'
 import { TransactionActionsModal } from '../components/transactions/TransactionActionsModal'
 import { useTransactions } from '../hooks/useTransactions'
 import { useCategories } from '../hooks/useCategories'
 import { getEffectiveStatus } from '../lib/status'
+import { currentMonthInput, monthInputToRange } from '../lib/period'
 import type { TransactionStatus, TransactionType, TransactionWithCategory } from '../types/database'
 
 export function Transactions() {
+  const [month, setMonth] = useState(currentMonthInput())
   const [statusFilter, setStatusFilter] = useState<TransactionStatus | ''>('')
   const [typeFilter, setTypeFilter] = useState<TransactionType | ''>('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -19,10 +22,13 @@ export function Transactions() {
   const [selected, setSelected] = useState<TransactionWithCategory | null>(null)
   const [editing, setEditing] = useState<TransactionWithCategory | null>(null)
 
+  const { from, to } = monthInputToRange(month)
   const { data: categories = [] } = useCategories()
   const { data: transactions = [], isLoading } = useTransactions({
     type: typeFilter || undefined,
     categoryId: categoryFilter || undefined,
+    from,
+    to,
   })
 
   const filtered = useMemo(
@@ -35,12 +41,14 @@ export function Transactions() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-content-muted">{filtered.length} lançamento(s)</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <MonthNav month={month} onChange={setMonth} />
         <Button onClick={() => setShowForm(true)}>
           <Plus size={16} /> Novo
         </Button>
       </div>
+
+      <p className="text-sm text-content-muted">{filtered.length} lançamento(s)</p>
 
       <Card className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         <Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TransactionType | '')}>
@@ -72,7 +80,7 @@ export function Transactions() {
       <Card>
         {isLoading && <p className="py-8 text-center text-sm text-content-muted">Carregando…</p>}
         {!isLoading && filtered.length === 0 && (
-          <p className="py-8 text-center text-sm text-content-muted">Nenhum lançamento encontrado.</p>
+          <p className="py-8 text-center text-sm text-content-muted">Nenhum lançamento neste período.</p>
         )}
         <div className="divide-y divide-border">
           {filtered.map((t) => (

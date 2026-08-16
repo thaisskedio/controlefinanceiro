@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { LogOut, Moon, Sun } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { Input } from '../components/ui/Field'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
+import { useAccountSettings, useSetInitialBalance } from '../hooks/useAccountSettings'
 
 const PALETTE = [
   { name: 'Rosa', hex: '#F472B6' },
@@ -16,6 +19,9 @@ const PALETTE = [
 export function Settings() {
   const { theme, setTheme } = useTheme()
   const { session, signOut } = useAuth()
+  const { data: accountSettings, isLoading: loadingBalance } = useAccountSettings()
+  const setInitialBalance = useSetInitialBalance()
+  const [balanceSaved, setBalanceSaved] = useState(false)
 
   return (
     <div className="flex flex-col gap-4">
@@ -25,6 +31,34 @@ export function Settings() {
         <Button variant="secondary" onClick={() => signOut()}>
           <LogOut size={16} /> Sair
         </Button>
+      </Card>
+
+      <Card>
+        <p className="mb-1 text-sm font-medium text-content">Saldo inicial</p>
+        <p className="mb-3 text-xs text-content-muted">
+          Valor somado ao saldo atual (ex: o que você já tinha antes de começar a usar o app). Não altera
+          nenhum lançamento já cadastrado, só o cálculo do saldo.
+        </p>
+        {!loadingBalance && (
+          <div className="flex items-center gap-2">
+            <Input
+              key={accountSettings?.initial_balance ?? 'empty'}
+              type="number"
+              step="0.01"
+              defaultValue={accountSettings?.initial_balance ?? ''}
+              placeholder="0,00"
+              className="max-w-[180px]"
+              onBlur={(e) => {
+                const value = Number(e.target.value)
+                setBalanceSaved(false)
+                if (!Number.isNaN(value) && value !== (accountSettings?.initial_balance ?? 0)) {
+                  setInitialBalance.mutate(value, { onSuccess: () => setBalanceSaved(true) })
+                }
+              }}
+            />
+            {balanceSaved && <span className="text-xs text-status-paid">Salvo</span>}
+          </div>
+        )}
       </Card>
 
       <Card>

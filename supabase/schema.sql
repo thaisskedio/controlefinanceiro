@@ -69,10 +69,12 @@ create table if not exists transactions (
   total_amount numeric(12, 2),
   is_recurring boolean not null default false,
   recurrence_frequency recurrence_frequency not null default 'none',
+  recurrence_interval int not null default 1,
   is_installment boolean not null default false,
   installment_group_id uuid,
   installment_number int,
   installment_total int,
+  recurrence_group_id uuid,
   due_date date not null,
   paid_date date,
   status transaction_status not null default 'pending',
@@ -81,9 +83,14 @@ create table if not exists transactions (
   updated_at timestamptz not null default now()
 );
 
+-- Para bancos já criados antes destes campos existirem.
+alter table transactions add column if not exists recurrence_interval int not null default 1;
+alter table transactions add column if not exists recurrence_group_id uuid;
+
 create index if not exists transactions_user_id_idx on transactions (user_id);
 create index if not exists transactions_due_date_idx on transactions (due_date);
 create index if not exists transactions_installment_group_idx on transactions (installment_group_id);
+create index if not exists transactions_recurrence_group_idx on transactions (recurrence_group_id);
 create index if not exists transactions_status_idx on transactions (status);
 
 alter table transactions enable row level security;
@@ -153,3 +160,31 @@ create policy "budget_plans_update_own" on budget_plans
 drop policy if exists "budget_plans_delete_own" on budget_plans;
 create policy "budget_plans_delete_own" on budget_plans
   for delete using (user_id = auth.uid());
+
+-- ── account_settings ──────────────────────────────────────────────────
+-- Saldo inicial: um ajuste somado ao saldo calculado (receitas pagas −
+-- despesas pagas), sem alterar nenhuma transação já lançada.
+create table if not exists account_settings (
+  user_id uuid primary key references auth.users (id) on delete cascade,
+  initial_balance numeric(12, 2) not null default 0,
+  updated_at timestamptz not null default now()
+);
+
+alter table account_settings enable row level security;
+
+drop policy if exists "account_settings_select_own" on account_settings;
+create policy "account_settings_select_own" on account_settings
+  for select using (user_id = auth.uid());
+
+drop policy if exists "account_settings_insert_own" on account_settings;
+create policy "account_settings_insert_own" on account_settings
+  for insert with check (user_id = auth.uid());
+
+drop policy if exists "account_settings_update_own" on account_settings;
+create policy "account_settings_update_own" on account_settings
+  for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+drop trigger if exists account_settings_set_updated_at on account_settings;
+create trigger account_settings_set_updated_at
+  before update on account_settings
+  for each row execute function set_updated_at();
