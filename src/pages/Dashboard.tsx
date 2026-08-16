@@ -4,7 +4,7 @@ import { useAccountSettings } from '../hooks/useAccountSettings'
 import { Card } from '../components/ui/Card'
 import { MonthNav } from '../components/ui/MonthNav'
 import { TransactionRow } from '../components/transactions/TransactionRow'
-import { WeeklyBarChart } from '../components/dashboard/WeeklyBarChart'
+import { CategoryBreakdown } from '../components/dashboard/CategoryBreakdown'
 import { formatCurrency } from '../lib/format'
 import { currentMonthInput, monthInputToRange } from '../lib/period'
 import { getEffectiveStatus } from '../lib/status'
@@ -95,8 +95,8 @@ export function Dashboard() {
       </div>
 
       <Card>
-        <p className="mb-2 text-sm font-medium text-content">Despesas x receitas por semana</p>
-        <WeeklyBarChart transactions={periodTransactions} />
+        <p className="mb-2 text-sm font-medium text-content">Despesas por categoria</p>
+        <CategoryBreakdown transactions={periodTransactions} />
       </Card>
 
       <Card>
