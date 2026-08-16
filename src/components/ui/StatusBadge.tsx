@@ -1,6 +1,6 @@
 import clsx from 'clsx'
-import type { TransactionStatus } from '../../types/database'
-import { STATUS_LABELS } from '../../lib/status'
+import type { TransactionStatus, TransactionType } from '../../types/database'
+import { getStatusLabel } from '../../lib/status'
 
 const dotClasses: Record<TransactionStatus, string> = {
   paid: 'bg-status-paid',
@@ -16,7 +16,7 @@ const textClasses: Record<TransactionStatus, string> = {
   canceled: 'text-status-canceled bg-status-canceled/10',
 }
 
-export function StatusBadge({ status }: { status: TransactionStatus }) {
+export function StatusBadge({ status, type }: { status: TransactionStatus; type: TransactionType }) {
   return (
     <span
       className={clsx(
@@ -25,7 +25,7 @@ export function StatusBadge({ status }: { status: TransactionStatus }) {
       )}
     >
       <span className={clsx('h-1.5 w-1.5 rounded-full', dotClasses[status])} />
-      {STATUS_LABELS[status]}
+      {getStatusLabel(status, type)}
     </span>
   )
 }

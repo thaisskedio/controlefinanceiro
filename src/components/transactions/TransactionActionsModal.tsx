@@ -30,6 +30,7 @@ export function TransactionActionsModal({
   const deleteTransaction = useDeleteTransaction()
 
   const status = getEffectiveStatus(transaction)
+  const isIncome = transaction.type === 'income'
   const isPartOfInstallment = !!transaction.installment_group_id
   const isPartOfRecurrence = !!transaction.recurrence_group_id
   const isPartOfGroup = isPartOfInstallment || isPartOfRecurrence
@@ -44,7 +45,7 @@ export function TransactionActionsModal({
           </p>
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xl font-semibold text-content">{formatCurrency(transaction.amount)}</span>
-            <StatusBadge status={status} />
+            <StatusBadge status={status} type={transaction.type} />
           </div>
         </div>
 
@@ -52,11 +53,11 @@ export function TransactionActionsModal({
           <div className="flex flex-col gap-2">
             {status === 'paid' ? (
               <Button variant="secondary" onClick={() => markAsPending.mutate(transaction.id, { onSuccess: onClose })}>
-                <Circle size={16} /> Marcar como pendente
+                <Circle size={16} /> {isIncome ? 'Marcar como a receber' : 'Marcar como pendente'}
               </Button>
             ) : (
               <Button onClick={() => markAsPaid.mutate(transaction.id, { onSuccess: onClose })}>
-                <CheckCircle2 size={16} /> Marcar como pago
+                <CheckCircle2 size={16} /> {isIncome ? 'Marcar como recebido' : 'Marcar como pago'}
               </Button>
             )}
 

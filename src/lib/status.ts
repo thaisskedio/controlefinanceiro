@@ -1,4 +1,4 @@
-import type { Transaction, TransactionStatus } from '../types/database'
+import type { Transaction, TransactionStatus, TransactionType } from '../types/database'
 
 /** Deriva o status efetivo: `pending` vira `late` quando due_date já passou. */
 export function getEffectiveStatus(transaction: Pick<Transaction, 'status' | 'due_date'>): TransactionStatus {
@@ -12,9 +12,22 @@ export function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-export const STATUS_LABELS: Record<TransactionStatus, string> = {
-  paid: 'Pago',
-  pending: 'Pendente',
-  late: 'Atrasado',
-  canceled: 'Cancelado',
+/** Despesa usa "pago"/"a pagar"; receita usa "recebido"/"a receber". */
+export const STATUS_LABELS: Record<TransactionType, Record<TransactionStatus, string>> = {
+  expense: {
+    paid: 'Pago',
+    pending: 'Pendente',
+    late: 'Atrasado',
+    canceled: 'Cancelado',
+  },
+  income: {
+    paid: 'Recebido',
+    pending: 'A receber',
+    late: 'Atrasado',
+    canceled: 'Cancelado',
+  },
+}
+
+export function getStatusLabel(status: TransactionStatus, type: TransactionType): string {
+  return STATUS_LABELS[type][status]
 }
