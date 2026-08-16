@@ -29,17 +29,38 @@ export async function listTransactions(filters: TransactionFilters = {}): Promis
   return data as unknown as TransactionWithCategory[]
 }
 
-function nextDueDate(date: Date, frequency: RecurrenceFrequency): Date {
+function nextDueDate(date: Date, frequency: RecurrenceFrequency, interval: number): Date {
   switch (frequency) {
     case 'weekly':
-      return addWeeks(date, 1)
+      return addWeeks(date, interval)
     case 'yearly':
-      return addYears(date, 1)
+      return addYears(date, interval)
     case 'monthly':
     case 'none':
     default:
-      return addMonths(date, 1)
+      return addMonths(date, interval)
   }
+}
+
+function nthDate(base: Date, frequency: RecurrenceFrequency, interval: number, n: number): Date {
+  let date = base
+  for (let i = 0; i < n; i++) date = nextDueDate(date, frequency, interval)
+  return date
+}
+
+/** Limite de segurança para quantas ocorrências uma série recorrente pode gerar de uma vez. */
+export const MAX_RECURRING_OCCURRENCES = 120
+
+function generateOccurrenceDates(start: Date, end: Date, frequency: RecurrenceFrequency, interval: number): Date[] {
+  const dates: Date[] = [start]
+  let current = start
+  while (dates.length < MAX_RECURRING_OCCURRENCES + 1) {
+    const next = nextDueDate(current, frequency, interval)
+    if (next > end) break
+    dates.push(next)
+    current = next
+  }
+  return dates
 }
 
 export type NewTransactionInput = Omit<
@@ -53,20 +74,29 @@ export type NewTransactionInput = Omit<
   | 'canceled_at'
   | 'installment_group_id'
   | 'installment_number'
->
+  | 'recurrence_group_id'
+> & {
+  /** Só usado na criação para calcular quantas ocorrências gerar; não é persistido. */
+  recurrence_end_date?: string | null
+}
 
 /**
- * Cria um lançamento. Quando `is_installment` + `installment_total > 1`, gera
- * automaticamente N linhas com `installment_group_id` comum, valor dividido
- * igualmente (ajuste de arredondamento na última parcela) e due_date
- * incrementando conforme `recurrence_frequency` (padrão mensal).
+ * Cria um lançamento.
+ * - Parcelamento (`is_installment` + `installment_total > 1`): gera N linhas com
+ *   `installment_group_id` comum, valor dividido igualmente (ajuste de
+ *   arredondamento na última parcela) e due_date incrementando conforme
+ *   `recurrence_frequency` + `recurrence_interval`.
+ * - Recorrência (`is_recurring` + `recurrence_end_date`): gera uma linha para
+ *   cada ocorrência entre `due_date` e `recurrence_end_date`, todas com o
+ *   mesmo valor e um `recurrence_group_id` comum (até MAX_RECURRING_OCCURRENCES).
  */
 export async function createTransaction(userId: string, input: NewTransactionInput) {
-  const baseDueDate = new Date(`${input.due_date}T00:00:00`)
+  const { recurrence_end_date, ...rest } = input
+  const baseDueDate = new Date(`${rest.due_date}T00:00:00`)
 
-  if (input.is_installment && input.installment_total && input.installment_total > 1) {
-    const total = input.total_amount ?? input.amount
-    const count = input.installment_total
+  if (rest.is_installment && rest.installment_total && rest.installment_total > 1) {
+    const total = rest.total_amount ?? rest.amount
+    const count = rest.installment_total
     const cents = Math.round(total * 100)
     const baseShare = Math.floor(cents / count)
     const remainder = cents - baseShare * count
@@ -74,9 +104,10 @@ export async function createTransaction(userId: string, input: NewTransactionInp
     const groupId = crypto.randomUUID()
     const rows = Array.from({ length: count }, (_, i) => {
       const shareCents = baseShare + (i === count - 1 ? remainder : 0)
-      const dueDate = i === 0 ? baseDueDate : nthDate(baseDueDate, input.recurrence_frequency, i)
+      const dueDate =
+        i === 0 ? baseDueDate : nthDate(baseDueDate, rest.recurrence_frequency, rest.recurrence_interval, i)
       return {
-        ...input,
+        ...rest,
         user_id: userId,
         amount: shareCents / 100,
         total_amount: total,
@@ -92,25 +123,54 @@ export async function createTransaction(userId: string, input: NewTransactionInp
     return data
   }
 
+  if (rest.is_recurring && recurrence_end_date) {
+    const endDate = new Date(`${recurrence_end_date}T00:00:00`)
+    const dates = generateOccurrenceDates(baseDueDate, endDate, rest.recurrence_frequency, rest.recurrence_interval)
+    const groupId = crypto.randomUUID()
+    const rows = dates.map((d) => ({
+      ...rest,
+      user_id: userId,
+      recurrence_group_id: groupId,
+      due_date: formatISO(d, { representation: 'date' }),
+      status: 'pending' as const,
+    }))
+
+    const { data, error } = await supabase.from('transactions').insert(rows).select('*')
+    if (error) throw error
+    return data
+  }
+
   const { data, error } = await supabase
     .from('transactions')
-    .insert({ ...input, user_id: userId, status: 'pending' })
+    .insert({ ...rest, user_id: userId, status: 'pending' })
     .select('*')
     .single()
   if (error) throw error
   return [data]
 }
 
-function nthDate(base: Date, frequency: RecurrenceFrequency, n: number): Date {
-  let date = base
-  for (let i = 0; i < n; i++) date = nextDueDate(date, frequency)
-  return date
-}
-
 export async function updateTransaction(id: string, input: Partial<Transaction>) {
   const { data, error } = await supabase.from('transactions').update(input).eq('id', id).select('*').single()
   if (error) throw error
   return data
+}
+
+/**
+ * Aplica a mudança a esta ocorrência e a todas as futuras da mesma série
+ * recorrente (due_date >= a desta). Não mexe em `due_date` de cada ocorrência.
+ */
+export async function updateTransactionSeries(transaction: Transaction, input: Partial<Transaction>) {
+  if (!transaction.recurrence_group_id) {
+    return updateTransaction(transaction.id, input)
+  }
+  const seriesInput = { ...input }
+  delete seriesInput.due_date
+  const { error } = await supabase
+    .from('transactions')
+    .update(seriesInput)
+    .eq('recurrence_group_id', transaction.recurrence_group_id)
+    .gte('due_date', transaction.due_date)
+  if (error) throw error
 }
 
 export async function markAsPaid(id: string) {
@@ -125,16 +185,18 @@ export type CancelScope = 'single' | 'future'
 
 export async function cancelTransaction(transaction: Transaction, scope: CancelScope) {
   const canceled_at = new Date().toISOString()
+  const groupId = transaction.installment_group_id ?? transaction.recurrence_group_id
+  const groupColumn = transaction.installment_group_id ? 'installment_group_id' : 'recurrence_group_id'
 
-  if (scope === 'single' || !transaction.installment_group_id) {
+  if (scope === 'single' || !groupId) {
     return updateTransaction(transaction.id, { status: 'canceled', canceled_at })
   }
 
   const { error } = await supabase
     .from('transactions')
     .update({ status: 'canceled', canceled_at })
-    .eq('installment_group_id', transaction.installment_group_id)
-    .gte('installment_number', transaction.installment_number ?? 0)
+    .eq(groupColumn, groupId)
+    .gte('due_date', transaction.due_date)
   if (error) throw error
 }
 

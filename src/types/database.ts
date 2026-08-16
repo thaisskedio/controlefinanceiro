@@ -25,10 +25,12 @@ export interface Transaction {
   total_amount: number | null
   is_recurring: boolean
   recurrence_frequency: RecurrenceFrequency
+  recurrence_interval: number
   is_installment: boolean
   installment_group_id: string | null
   installment_number: number | null
   installment_total: number | null
+  recurrence_group_id: string | null
   due_date: string
   paid_date: string | null
   status: TransactionStatus
@@ -48,5 +50,11 @@ export interface BudgetPlan {
   category_group: BudgetGroup
   planned_amount: number
   created_at: string
+}
+
+export interface AccountSettings {
+  user_id: string
+  initial_balance: number
+  updated_at: string
 }
 
