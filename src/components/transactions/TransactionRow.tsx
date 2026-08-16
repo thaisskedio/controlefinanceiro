@@ -40,7 +40,7 @@ export function TransactionRow({
         <span className={clsx('text-sm font-semibold', isExpense ? 'text-status-late' : 'text-status-paid')}>
           {isExpense ? '-' : '+'} {formatCurrency(transaction.amount)}
         </span>
-        <StatusBadge status={status} />
+        <StatusBadge status={status} type={transaction.type} />
       </span>
     </button>
   )
