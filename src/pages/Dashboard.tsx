@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react'
 import { useTransactions } from '../hooks/useTransactions'
 import { useAccountSettings } from '../hooks/useAccountSettings'
 import { Card } from '../components/ui/Card'
+import { MonthNav } from '../components/ui/MonthNav'
 import { TransactionRow } from '../components/transactions/TransactionRow'
 import { WeeklyBarChart } from '../components/dashboard/WeeklyBarChart'
 import { formatCurrency } from '../lib/format'
-import { currentMonthInput, monthInputLabel, monthInputToRange } from '../lib/period'
+import { currentMonthInput, monthInputToRange } from '../lib/period'
 import { getEffectiveStatus } from '../lib/status'
 
 export function Dashboard() {
@@ -67,15 +68,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm capitalize text-content-muted">{monthInputLabel(month)}</p>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="w-full rounded-xl border border-border bg-surface-raised px-3 py-2 text-sm text-content sm:w-auto"
-        />
-      </div>
+      <MonthNav month={month} onChange={setMonth} />
 
       <Card className="bg-gradient-to-br from-brand-teal to-brand-tealDark text-white">
         <p className="text-sm text-white/80">Saldo atual</p>
