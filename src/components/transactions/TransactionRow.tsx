@@ -23,7 +23,8 @@ export function TransactionRow({
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white"
         style={{ backgroundColor: transaction.category?.color ?? '#A78BFA' }}
       >
-        {(transaction.category?.name ?? transaction.description).slice(0, 1).toUpperCase()}
+        {transaction.category?.icon ||
+          (transaction.category?.name ?? transaction.description).slice(0, 1).toUpperCase()}
       </span>
 
       <span className="min-w-0 flex-1">
