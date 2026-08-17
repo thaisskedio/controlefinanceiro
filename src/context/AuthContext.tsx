@@ -8,6 +8,7 @@ interface AuthContextValue {
   loading: boolean
   passwordRecovery: boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string, name: string) => Promise<{ error: string | null; needsConfirmation: boolean }>
   signOut: () => Promise<void>
   sendPasswordReset: (email: string) => Promise<{ error: string | null }>
   updatePassword: (password: string) => Promise<{ error: string | null }>
@@ -17,9 +18,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
 /**
- * Login obrigatório por e-mail/senha (Supabase Auth). Cadastro é fechado:
- * a conta é criada manualmente no painel do Supabase (Authentication > Users),
- * não existe tela de cadastro no app.
+ * Login por e-mail/senha (Supabase Auth), com auto-cadastro (nome + e-mail +
+ * senha) na própria tela de login. O nome fica salvo em user_metadata.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -43,6 +43,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error?.message ?? null }
+  }
+
+  async function signUp(email: string, password: string, name: string) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
+    })
+    return { error: error?.message ?? null, needsConfirmation: !error && !data.session }
   }
 
   async function signOut() {
@@ -74,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         passwordRecovery,
         signIn,
+        signUp,
         signOut,
         sendPasswordReset,
         updatePassword,

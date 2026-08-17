@@ -27,6 +27,9 @@ export function Settings() {
     <div className="flex flex-col gap-4">
       <Card>
         <p className="mb-3 text-sm font-medium text-content">Conta</p>
+        {session?.user.user_metadata?.name && (
+          <p className="text-sm text-content">{session.user.user_metadata.name}</p>
+        )}
         <p className="mb-3 text-xs text-content-muted">{session?.user.email}</p>
         <Button variant="secondary" onClick={() => signOut()}>
           <LogOut size={16} /> Sair
