@@ -6,6 +6,8 @@ import { Input } from '../components/ui/Field'
 import { useTheme } from '../context/ThemeContext'
 import { useAuth } from '../context/AuthContext'
 import { useAccountSettings, useSetInitialBalance } from '../hooks/useAccountSettings'
+import { isAdminEmail } from '../lib/admin'
+import { AdminCreateUserCard } from '../components/settings/AdminCreateUserCard'
 
 const PALETTE = [
   { name: 'Rosa', hex: '#F472B6' },
@@ -102,6 +104,8 @@ export function Settings() {
           ))}
         </div>
       </Card>
+
+      {isAdminEmail(session?.user.email) && <AdminCreateUserCard />}
 
       <Card>
         <p className="text-sm font-medium text-content">Sobre</p>
