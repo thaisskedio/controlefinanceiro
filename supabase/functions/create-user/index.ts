@@ -7,7 +7,7 @@
 // create-user (ou `supabase functions deploy create-user` via CLI).
 //
 // Secrets necessários (Edge Functions > Secrets):
-//   ADMIN_EMAILS = thais.alca2c@gmail.com
+//   ADMIN_EMAILS = thais.soreano@outlook.pt,thais.alca2c@gmail.com
 // SUPABASE_URL, SUPABASE_ANON_KEY e SUPABASE_SERVICE_ROLE_KEY já vêm
 // automaticamente disponíveis em toda Edge Function do projeto — não
 // precisa cadastrar esses três manualmente (confira em Secrets; se por
