@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext'
 import { useAccountSettings, useSetInitialBalance } from '../hooks/useAccountSettings'
 import { isAdminEmail } from '../lib/admin'
 import { AdminCreateUserCard } from '../components/settings/AdminCreateUserCard'
+import { ChangePasswordCard } from '../components/settings/ChangePasswordCard'
 
 const PALETTE = [
   { name: 'Rosa', hex: '#F472B6' },
@@ -37,6 +38,8 @@ export function Settings() {
           <LogOut size={16} /> Sair
         </Button>
       </Card>
+
+      <ChangePasswordCard />
 
       <Card>
         <p className="mb-1 text-sm font-medium text-content">Saldo inicial</p>
